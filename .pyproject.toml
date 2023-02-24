@@ -1,0 +1,11 @@
+[project]
+name = "radar-schedules"
+description = "implementations of various radar scheduling algorithms"
+version = "0.1.0"
+authors = [
+    { name = "Amos Hebb", email = "amos@amoshebb.com" }
+]
+
+[tool.isort]
+profile = "black"
+
