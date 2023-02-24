@@ -1,17 +1,18 @@
 from copy import deepcopy
 from math import ceil
 from time import time_ns
-from typing import List
 
 import distinctipy
 import matplotlib.pyplot as plt
 import numpy as np
 
+from pretty_plot import pretty_plot
 from schedule_dual_side_with_rsst import dual_side_with_rsst
 from schedule_earliest_deadline import schedule_earliest_deadline
 from schedule_earliest_start_time import earliest_start_time
 from schedule_front_line_assembly import front_line_assembly
 from schedule_random_shifted_start_time import random_shifted_start_time
+from summary_stats import summary_stats
 from task import Task
 
 # --------------------------------------------------------------------------------
@@ -66,7 +67,7 @@ for task in task_list:
         minimum_t=0,
         maximum_t=WINDOW_LENGTH,
         tau=TAU,
-        minimum_priority=1,  # TODO: minimum priority 0? All priority zero tasks sholud be dropped
+        minimum_priority=1,
         maximum_priority=9,
     )
 
@@ -77,56 +78,13 @@ for task, color in zip(task_list, distinct_colors):
 
 most_cost = sum(task.drop_cost() for task in task_list)
 
-
-# -----------------------------------------------------------------------------------
-# helper functions
-
-
-def pretty_plot(tasks: List[Task], fig_title: str):
-    non_dropped_tasks = (task for task in tasks if not task.dropped)
-    non_overlapping_task_lists = []
-    for task in sorted(non_dropped_tasks, key=lambda task: task.t_scheduled):
-        for task_list in non_overlapping_task_lists:
-            last_task = task_list[-1]
-            if task.t_scheduled >= last_task.t_scheduled + last_task.t_dwell:
-                task_list.append(task)
-                break
-        else:
-            non_overlapping_task_lists.append([task])
-
-    plt.figure(fig_title, figsize=(6, len(non_overlapping_task_lists)))
-    for i, task_list in enumerate(non_overlapping_task_lists):
-        x_ranges = list((task.t_scheduled, task.t_dwell) for task in task_list)
-        max_priority = max(task.priority for task in task_list)
-        x_alpha = list(task.priority / max_priority for task in task_list)
-        y_ranges = (i * 0.1, 0.095)
-        facecolors = list(task.color for task in task_list)
-        plt.broken_barh(
-            x_ranges, y_ranges, facecolors=facecolors, edgecolor="black", alpha=x_alpha
-        )
-    plt.yticks([])
-    plt.xlim(0, WINDOW_LENGTH)
-    plt.title(fig_title)
-
-
-def summary_stats(tasks: List[Task], schedule_name):
-    drop_count = sum(1 for task in tasks if task.dropped)
-    print(
-        f"     Executed tasks count: {N_ACTUAL-drop_count}/{N_ACTUAL} ({schedule_name}) | Dropped tasks count: {drop_count}/{N_ACTUAL} ({schedule_name})"
-    )
-    normalized_cost = sum(task.calculate_cost() for task in tasks) / most_cost
-    print(
-        f"     Normalized cost calculated by {schedule_name}: {normalized_cost} (0~1)"
-    )
-
-
 # ----------------------------------------------------------------------------------
 
 print(f"--------------Designed for {N} Tasks-----------------")
 
 # --- show start time of each task
 
-pretty_plot(task_list, "Original Task Sequence, without Scheduling")
+pretty_plot(task_list, "Original Task Sequence, without Scheduling", WINDOW_LENGTH)
 
 # -------------------------------a1. Earliest Start Time (EST) Scheduling ----------
 
@@ -136,8 +94,8 @@ earliest_start_time_tasks_scheduled = earliest_start_time(deepcopy(task_list))
 
 print(f"Time elapsed for EST: {(time_ns()-tic)/1_000_000} ms (EST)")
 
-pretty_plot(earliest_start_time_tasks_scheduled, "Scheduled by EST")
-summary_stats(earliest_start_time_tasks_scheduled, "EST Scheduling")
+pretty_plot(earliest_start_time_tasks_scheduled, "Scheduled by EST", WINDOW_LENGTH)
+summary_stats(earliest_start_time_tasks_scheduled, "EST Scheduling", most_cost)
 
 # -------------------------------a2. Earliest Deadline (ED) Scheduling -------------
 
@@ -146,8 +104,10 @@ earliest_deadline_tasks_scheduled = schedule_earliest_deadline(deepcopy(task_lis
 
 print(f"Time elapsed for ED: {(time_ns()-tic)/1_000_000} ms (ED)")
 
-pretty_plot(earliest_deadline_tasks_scheduled, "Earliest Deadline Scheduling")
-summary_stats(earliest_deadline_tasks_scheduled, "ED Scheduling")
+pretty_plot(
+    earliest_deadline_tasks_scheduled, "Earliest Deadline Scheduling", WINDOW_LENGTH
+)
+summary_stats(earliest_deadline_tasks_scheduled, "ED Scheduling", most_cost)
 
 # -------------------------------b. Random Shifted Start Time (RSST) Scheduling ----
 
@@ -156,8 +116,8 @@ rsst_tasks_scheduled = random_shifted_start_time(deepcopy(task_list), ITR_RSST)
 
 print(f"Time elapsed for RSST: {(time_ns()-tic)/1_000_000} ms (ED)")
 
-pretty_plot(rsst_tasks_scheduled, "RSST Scheduling")
-summary_stats(rsst_tasks_scheduled, "RSST Scheduling")
+pretty_plot(rsst_tasks_scheduled, "RSST Scheduling", WINDOW_LENGTH)
+summary_stats(rsst_tasks_scheduled, "RSST Scheduling", most_cost)
 
 # -------------------------------c. Dual-Side Scheduling with RSST (DSS) -----------
 
@@ -168,8 +128,8 @@ dss_tasks_scheduled = dual_side_with_rsst(
 
 print(f"Time elapsed for DSS: {(time_ns()-tic)/1_000_000} ms (DSS)")
 
-pretty_plot(dss_tasks_scheduled, "DSS Scheduling")
-summary_stats(dss_tasks_scheduled, "DSS Scheduling")
+pretty_plot(dss_tasks_scheduled, "DSS Scheduling", WINDOW_LENGTH)
+summary_stats(dss_tasks_scheduled, "DSS Scheduling", most_cost)
 
 # d. front line assembly
 
@@ -179,8 +139,7 @@ fla_scheduled = front_line_assembly(deepcopy(task_list))
 
 print(f"Time elapsed for FLA: {(time_ns()-tic)/1_000_000} ms (FLA)")
 
-pretty_plot(fla_scheduled, "FLA Scheduling")
-summary_stats(fla_scheduled, "FLA Scheduling")
-
+pretty_plot(fla_scheduled, "FLA Scheduling", WINDOW_LENGTH)
+summary_stats(fla_scheduled, "FLA Scheduling", most_cost)
 
 plt.show()

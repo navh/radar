@@ -38,6 +38,7 @@ def dual_side_schedule(tasks: List[Task], border: float) -> List[Task]:
     # tasks_before_border = [
     #     task for task in tasks if ((task.t_scheduled + task.t_dwell / 2)) < border
     # ]
+    # TODO: change this so that tasks on border fall onto correct side of border
     tasks_before_border = [task for task in tasks if ((task.t_scheduled)) < border]
 
     tasks_after_border = [task for task in tasks if task not in tasks_before_border]

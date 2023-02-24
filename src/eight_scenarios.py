@@ -2,9 +2,6 @@ import json
 from copy import deepcopy
 from pathlib import Path
 from time import time_ns
-from typing import List
-
-import numpy as np
 
 from scenario import Scenario
 from schedule_dual_side_with_rsst import dual_side_with_rsst
@@ -12,30 +9,17 @@ from schedule_earliest_deadline import schedule_earliest_deadline
 from schedule_earliest_start_time import earliest_start_time
 from schedule_front_line_assembly import front_line_assembly
 from schedule_random_shifted_start_time import random_shifted_start_time
-from task import Task
+from summary_stats import summary_stats
 
-ITR_RSST = int(float("1e3"))  # 1e3 to match matlab, could we invest in a couple zeros?
-# ITR_RSST = 1_000_000_000 # I find this easier to parse than 1e9, either works though
+ITR_RSST = 1_000
 
 TOTAL_BORDERS = 10
 ITR_RSST_DUALSIDE = 50
 
+# TODO: arg this
+run_path = "../eight_scenarios/run_1677256728178111000"
 
-def summary_stats(
-    tasks: List[Task], schedule_name: str, n_actual: int, all_drop_cost: float
-):
-    drop_count = sum(1 for task in tasks if task.dropped)
-    print(
-        f"     Executed tasks count: {n_actual-drop_count}/{n_actual} ({schedule_name}) | Dropped tasks count: {drop_count}/{n_actual} ({schedule_name})"
-    )
-    normalized_cost = sum(task.calculate_cost() for task in tasks) / all_drop_cost
-    print(
-        f"     Normalized cost calculated by {schedule_name}: {normalized_cost} (0~1)"
-    )
-
-
-run_path = "./eight_scenarios/run_1677256728178111000"
-
+# TODO: just grab everything from run dir, will help with big runs
 states = [
     "state_1.json",
     "state_2.json",
@@ -73,7 +57,6 @@ for state in states:
     summary_stats(
         earliest_start_time_tasks_scheduled,
         "EST Scheduling",
-        len(task_list),
         max_drop_cost,
     )
 
@@ -87,7 +70,6 @@ for state in states:
     summary_stats(
         earliest_deadline_tasks_scheduled,
         "ED Scheduling",
-        len(task_list),
         max_drop_cost,
     )
 
@@ -98,9 +80,7 @@ for state in states:
 
     print(f"Time elapsed for RSST: {(time_ns()-tic)/1_000_000} ms (ED)")
 
-    summary_stats(
-        rsst_tasks_scheduled, "RSST Scheduling", len(task_list), max_drop_cost
-    )
+    summary_stats(rsst_tasks_scheduled, "RSST Scheduling", max_drop_cost)
 
     # -------------------------------c. Dual-Side Scheduling with RSST (DSS) -----------
 
@@ -111,7 +91,7 @@ for state in states:
 
     print(f"Time elapsed for DSS: {(time_ns()-tic)/1_000_000} ms (DSS)")
 
-    summary_stats(dss_tasks_scheduled, "DSS Scheduling", len(task_list), max_drop_cost)
+    summary_stats(dss_tasks_scheduled, "DSS Scheduling", max_drop_cost)
 
     # d. front line assembly
 
@@ -120,4 +100,4 @@ for state in states:
 
     print(f"Time elapsed for FLA: {(time_ns()-tic)/1_000_000} ms (FLA)")
 
-    summary_stats(fla_scheduled, "FLA Scheduling", len(task_list), max_drop_cost)
+    summary_stats(fla_scheduled, "FLA Scheduling", max_drop_cost)
